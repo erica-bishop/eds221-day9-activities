@@ -19,6 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(skimr)
 library(tidytext)
+library(here)
 ```
 
 ## Read in the data
@@ -53,6 +54,7 @@ for (i in seq_along(knb_files)) {
 ## Initial exploration
 
 Basic exploration of the bird observation dataset. There is only one error in the code chunk below (i.e., not all individual lines have an error). 
+
 ```{r, include = FALSE}
 # Return the dimensions 
 dim(birds_1)
@@ -64,7 +66,7 @@ names(birds_1)
 skim(birds_1)
 
 # See the different species (species_id)
-unique(birds_1 %>% species_id)
+unique(birds_1$species_id)
 
 # Check out the taxa information
 head(taxalist_1)
@@ -76,7 +78,7 @@ The code below should join the information in `taxalist_1` to the `birds_1` data
 
 ```{r, include = FALSE}
 birds_df <- birds_1 %>% 
-  left_join(taxalist_1, by = "species")
+  left_join(taxalist_1, by = "species_id")
 ```
 
 ## Find total counts by park and plot top 15
@@ -85,8 +87,8 @@ The code below joins the site information to `birds_df`, then groups by and `par
 
 ```{r}
 bird_totals_by_park <- birds_df %>% 
-  left_join(sites_1, by = "site_id") %>% 
-  group_by(park_name) %>% 
+  left_join(sites_1) %>% 
+  groupby(park_name) %>% 
   summarize(total_count = sum(bird_count, na.rm = TRUE)) %>% 
   slice_max(total_count, n = 15) %>% 
   mutate(park_name = fct_reorder(park_name, total_count))
@@ -97,9 +99,10 @@ This code creates a plot of the top 15 parks by total bird count.
 ggplot(data = bird_totals_by_park, aes(x = total_count, y = park_name)) +
   geom_col() +
   labs(x = "Total bird count",
-       y = "Park name") +
+       y = "Park name") %>%
   theme_minimal()
 ```
+
 
 ## Find top 5 bird species by park, and make a graph
 
@@ -107,7 +110,7 @@ The code below joins the site information to the bird count data, then finds the
 
 ```{r}
 common_birds <- birds_df %>% 
-  left_join(sites_1, by = "site_id") %>% 
+  semi_join(sites_1) %>% 
   group_by(park_name, common_name) %>% 
   summarize(total_count = sum(bird_count, na.rm = TRUE)) %>% 
   slice_max(total_count, n = 5)
@@ -117,13 +120,13 @@ The code below should limit the observations to the following parks: Cholla Cove
 
 ```{r}
 selected_parks <- common_birds %>% 
-  filter(park_name %in% c("Cholla Cove", "Desert Willow", "Nueve", "Orme", "Palomino", "Sonrisa"))
+  filter(park_name %in% c("Cholla Cove", "Desert Willow", "Nueve", "Orme", "Palamino", "Sonrisa"))
 ```
 
 The code below creates a faceted ggplot graph with the top 5 most frequently observed birds at each location. 
 
 ```{r}
-ggplot(data = selected_parks, aes(y = common_name, x = total_count)) +
+ggplot(data = selected_parks, y = common_name, x = total_count) +
   geom_col() +
   scale_x_continuous(limits = c(0, 3000)) +
   facet_wrap(~park_name, scales = "free_y") +
@@ -133,6 +136,6 @@ ggplot(data = selected_parks, aes(y = common_name, x = total_count)) +
 
 The code below exports the graph as a .jpg and saves in the project root.
 ```{r}
-ggsave(here("bird_counts.jpg"), height = 6, width = 12)
+ggsave(here("bird_counts.jpg"), heigth = 6, width = 12)
 ```
 
